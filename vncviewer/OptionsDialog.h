@@ -92,6 +92,10 @@ protected:
   Fl_Int_Input *compressionInput;
   Fl_Int_Input *jpegInput;
 
+#ifdef HAVE_H264
+  Fl_Check_Button *H264Checkbox;
+#endif
+
   /* Security */
   Fl_Group *encryptionGroup;
   Fl_Check_Button *encNoneCheckbox;

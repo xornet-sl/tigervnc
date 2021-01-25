@@ -19,6 +19,10 @@
 #ifndef __OS_MUTEX_H__
 #define __OS_MUTEX_H__
 
+#ifndef WIN32
+#include <pthread.h>
+#endif
+
 namespace os {
   class Condition;
 
@@ -28,17 +32,21 @@ namespace os {
     ~Mutex();
 
     void lock();
+    bool try_lock();
     void unlock();
 
   private:
     friend class Condition;
 
     void* systemMutex;
+#ifndef WIN32
+    pthread_mutexattr_t ma;
+#endif
   };
 
   class AutoMutex {
   public:
-    AutoMutex(Mutex* mutex) { m = mutex; m->lock(); }
+    AutoMutex(Mutex* mutex, bool already_locked = false) { m = mutex; if (!already_locked) m->lock(); }
     ~AutoMutex() { m->unlock(); }
   private:
     Mutex* m;

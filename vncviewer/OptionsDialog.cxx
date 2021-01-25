@@ -181,6 +181,9 @@ void OptionsDialog::loadOptions(void)
   compressionInput->value(digit);
   digit[0] = '0' + qualityLevel;
   jpegInput->value(digit);
+#ifdef HAVE_H264
+  H264Checkbox->value(useH264Encoding);
+#endif
 
   handleAutoselect(autoselectCheckbox, this);
   handleCompression(compressionCheckbox, this);
@@ -333,6 +336,9 @@ void OptionsDialog::storeOptions(void)
   noJpeg.setParam(!jpegCheckbox->value());
   compressLevel.setParam(atoi(compressionInput->value()));
   qualityLevel.setParam(atoi(jpegInput->value()));
+#ifdef HAVE_H264
+  useH264Encoding.setParam(H264Checkbox->value());
+#endif
 
 #ifdef HAVE_GNUTLS
   /* Security */
@@ -569,6 +575,14 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
                                _("quality (0=poor, 9=best)"));
   jpegInput->align(FL_ALIGN_RIGHT);
   ty += INPUT_HEIGHT + INNER_MARGIN;
+
+#ifdef HAVE_H264
+  H264Checkbox = new Fl_Check_Button(LBLRIGHT(tx, ty,
+                                              CHECK_MIN_WIDTH,
+                                              CHECK_HEIGHT,
+                                              _("Allow and prefer H.264 encoding")));
+  ty += CHECK_HEIGHT + TIGHT_MARGIN;
+#endif
 
   group->end();
 }

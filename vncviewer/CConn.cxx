@@ -93,6 +93,10 @@ CConn::CConn(const char* vncServerName, network::Socket* socket=NULL)
   if (!noJpeg)
     setQualityLevel(::qualityLevel);
 
+#ifdef HAVE_H264
+  useH264Encoding = ::useH264Encoding;
+#endif
+
   if(sock == NULL) {
     try {
 #ifndef WIN32
@@ -310,6 +314,10 @@ void CConn::initDone()
   // Force a switch to the format and encoding we'd like
   updatePixelFormat();
   int encNum = encodingNum(::preferredEncoding);
+#ifdef HAVE_H264
+  if (::useH264Encoding)
+    encNum = encodingH264;
+#endif
   if (encNum != -1)
     setPreferredEncoding(encNum);
 }

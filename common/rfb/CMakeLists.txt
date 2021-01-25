@@ -64,6 +64,10 @@ set(RFB_SOURCES
   encodings.cxx
   util.cxx)
 
+if(ENABLE_H264)
+  set(RFB_SOURCES ${RFB_SOURCES} H264Decoder.cxx)
+endif()
+
 if(UNIX)
   set(RFB_SOURCES ${RFB_SOURCES} Logger_syslog.cxx)
 endif()

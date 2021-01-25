@@ -46,6 +46,9 @@ extern rfb::BoolParameter customCompressLevel;
 extern rfb::IntParameter compressLevel;
 extern rfb::BoolParameter noJpeg;
 extern rfb::IntParameter qualityLevel;
+#ifdef HAVE_H264
+extern rfb::BoolParameter useH264Encoding;
+#endif
 
 extern rfb::BoolParameter maximize;
 extern rfb::BoolParameter fullScreen;

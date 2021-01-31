@@ -116,16 +116,12 @@ rdr::U8* H264DecoderContext::validateH264BufferLength(rdr::U8* buffer, rdr::U32 
   if (len == reserve_len)
     return buffer;
 
-  if (h264AlignedBuffer == NULL)
-  {
-    h264AlignedBuffer = (rdr::U8*)malloc(reserve_len);
-    h264AlignedCapacity = reserve_len;
-  }
-  else if (reserve_len > h264AlignedCapacity)
+  if (!h264AlignedBuffer || reserve_len > h264AlignedCapacity)
   {
     h264AlignedBuffer = (rdr::U8*)realloc(h264AlignedBuffer, reserve_len);
     h264AlignedCapacity = reserve_len;
   }
+
   memcpy(h264AlignedBuffer, buffer, len);
   memset(h264AlignedBuffer + len, 0, h264AlignedCapacity - len);
   return h264AlignedBuffer;

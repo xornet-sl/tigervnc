@@ -47,14 +47,16 @@ namespace rfb {
     private:
       bool _initCodec();
       void _freeCodec();
+      rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);
 
       Rect rect;
       AVCodecContext *avctx;
       AVCodecParserContext *parser;
       AVFrame* frame;
       SwsContext* sws = NULL;
-      uint8_t* sws_buffer = NULL;
-      std::vector<rdr::U8> h264_aligned;
+      uint8_t* swsBuffer = NULL;
+      rdr::U8* h264AlignedBuffer = NULL;
+      rdr::U32 h264AlignedCapacity = 0;
       bool initialized = false;
   };
 

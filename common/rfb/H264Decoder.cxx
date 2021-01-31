@@ -49,7 +49,7 @@ H264DecoderContext::H264DecoderContext(const Rect& r) : rect(r)
     return;
 
   int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB32, r.width(), r.height(), 1);
-  sws_buffer = new uint8_t[numBytes];
+  swsBuffer = new uint8_t[numBytes];
 
   vlog.info("Context created");
   initialized = true;
@@ -59,7 +59,9 @@ H264DecoderContext::~H264DecoderContext()
 {
   os::AutoMutex lock(&mutex);
   _freeCodec();
-  delete[] sws_buffer;
+  delete[] swsBuffer;
+  if (h264AlignedBuffer)
+    free(h264AlignedBuffer);
   initialized = false;
 }
 
@@ -108,20 +110,33 @@ void H264DecoderContext::_freeCodec()
   av_frame_free(&frame);
 }
 
+rdr::U8* H264DecoderContext::validateH264BufferLength(rdr::U8* buffer, rdr::U32 len)
+{
+  rdr::U32 reserve_len = len + len % AV_INPUT_BUFFER_PADDING_SIZE;
+  if (len == reserve_len)
+    return buffer;
+
+  if (h264AlignedBuffer == NULL)
+  {
+    h264AlignedBuffer = (rdr::U8*)malloc(reserve_len);
+    h264AlignedCapacity = reserve_len;
+  }
+  else if (reserve_len > h264AlignedCapacity)
+  {
+    h264AlignedBuffer = (rdr::U8*)realloc(h264AlignedBuffer, reserve_len);
+    h264AlignedCapacity = reserve_len;
+  }
+  memcpy(h264AlignedBuffer, buffer, len);
+  memset(h264AlignedBuffer + len, 0, h264AlignedCapacity - len);
+  return h264AlignedBuffer;
+}
+
 void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb)
 {
   if (!initialized)
     return;
 
-  rdr::U32 min_len = len + len % AV_INPUT_BUFFER_PADDING_SIZE;
-  if (len < min_len)
-  {
-    // We should maintain padding
-    h264_aligned.reserve(min_len);
-    memcpy(&h264_aligned[0], h264_buffer, len);
-    memset(&h264_aligned[len], 0, h264_aligned.capacity() - len);
-    h264_buffer = &h264_aligned[0];
-  }
+  h264_buffer = validateH264BufferLength(h264_buffer, len);
 
   AVPacket packet;
   av_init_packet(&packet);
@@ -156,9 +171,9 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
   pb->getBuffer(rect, &stride);
   int dst_linesize = stride * pb->getPF().bpp/8;  // stride is in pixels, linesize is in bytes (stride x4). We need bytes
 
-  sws_scale(sws, frame->data, frame->linesize, 0, frame->height, &sws_buffer, &dst_linesize);
+  sws_scale(sws, frame->data, frame->linesize, 0, frame->height, &swsBuffer, &dst_linesize);
 
-  pb->imageRect(rect, sws_buffer, stride);
+  pb->imageRect(rect, swsBuffer, stride);
 }
 
 void H264DecoderContext::reset()

@@ -21,6 +21,7 @@
 #define __RFB_H264DECODER_H__
 
 #include <deque>
+#include <vector>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -53,6 +54,7 @@ namespace rfb {
       AVFrame* frame;
       SwsContext* sws = NULL;
       uint8_t* sws_buffer = NULL;
+      std::vector<rdr::U8> h264_aligned;
       bool initialized = false;
   };
 

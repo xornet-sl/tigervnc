@@ -112,6 +112,17 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
 {
   if (!initialized)
     return;
+
+  rdr::U32 min_len = len + len % AV_INPUT_BUFFER_PADDING_SIZE;
+  if (len < min_len)
+  {
+    // We should maintain padding
+    h264_aligned.reserve(min_len);
+    memcpy(&h264_aligned[0], h264_buffer, len);
+    memset(&h264_aligned[len], 0, h264_aligned.capacity() - len);
+    h264_buffer = &h264_aligned[0];
+  }
+
   AVPacket packet;
   av_init_packet(&packet);
   packet.size = len;
@@ -258,22 +269,5 @@ void H264Decoder::decodeRect(const Rect& r, const void* buffer,
 
   rdr::U8* h264_buffer = const_cast<rdr::U8*>(is.getptr(0));
 
-  // Check if buffer wasn't well padded
-  bool bufferReallocated = false;
-  if (len % AV_INPUT_BUFFER_PADDING_SIZE)
-  {
-    // bad, bad encoder
-    vlog.debug("bad buffer padding, wastefull memory reallocation");
-    h264_buffer = new rdr::U8[len + len % AV_INPUT_BUFFER_PADDING_SIZE];
-    memcpy(h264_buffer, is.getptr(0), len);
-    memset(h264_buffer + len, 0, len % AV_INPUT_BUFFER_PADDING_SIZE);
-    bufferReallocated = true;
-  }
-
   ctx->decode(h264_buffer, len, flags, pb);
-  if (bufferReallocated)
-  {
-    delete[] h264_buffer;
-    h264_buffer = NULL;
-  }
 }

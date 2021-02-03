@@ -269,85 +269,103 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
     return;
   }
 
-  decoded_buffer->SetCurrentLength(0);
+  bool decoded = false;
 
-  MFT_OUTPUT_DATA_BUFFER decoded_data;
-  decoded_data.dwStreamID = 0;
-  decoded_data.pSample = decoded_sample;
-  decoded_data.dwStatus = 0;
-  decoded_data.pEvents = NULL;
-
-  DWORD status;
-  HRESULT hr = decoder->ProcessOutput(0, 1, &decoded_data, &status);
-
-  if (hr == MF_E_TRANSFORM_STREAM_CHANGE)
+  // try to retrieve all decoded output, as input can submit multiple h264 packets in one buffer
+  for (;;)
   {
-    DWORD output_index = 0;
-    IMFMediaType* output_type = NULL;
-    while (SUCCEEDED(decoder->GetOutputAvailableType(0, output_index++, &output_type)))
+    decoded_buffer->SetCurrentLength(0);
+
+    MFT_OUTPUT_DATA_BUFFER decoded_data;
+    decoded_data.dwStreamID = 0;
+    decoded_data.pSample = decoded_sample;
+    decoded_data.dwStatus = 0;
+    decoded_data.pEvents = NULL;
+
+    DWORD status;
+    HRESULT hr = decoder->ProcessOutput(0, 1, &decoded_data, &status);
+    SAFE_RELEASE(decoded_data.pEvents)
+
+    if (SUCCEEDED(hr))
     {
-      GUID subtype;
-      if (SUCCEEDED(output_type->GetGUID(MF_MT_SUBTYPE, &subtype)) && subtype == MFVideoFormat_NV12)
+      // successfully decoded next frame
+      // but do not exit loop, try again if there is next frame
+      decoded = true;
+    }
+    else if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT)
+    {
+      // no more frame s to decode
+      break;
+    }
+    else if (hr == MF_E_TRANSFORM_STREAM_CHANGE)
+    {
+      // something changed (resolution, framerate, h264 properties...)
+      // need to setup output type and try decoding again
+
+      DWORD output_index = 0;
+      IMFMediaType* output_type = NULL;
+      while (SUCCEEDED(decoder->GetOutputAvailableType(0, output_index++, &output_type)))
       {
-        decoder->SetOutputType(0, output_type, 0);
-        break;
+        GUID subtype;
+        if (SUCCEEDED(output_type->GetGUID(MF_MT_SUBTYPE, &subtype)) && subtype == MFVideoFormat_NV12)
+        {
+          decoder->SetOutputType(0, output_type, 0);
+          break;
+        }
+        output_type->Release();
+        output_type = NULL;
       }
-      output_type->Release();
-      output_type = NULL;
-    }
 
-    // reinitialize output type (NV12) that now has correct properties (width/height/framerate)
-    decoder->SetOutputType(0, output_type, 0);
+      // reinitialize output type (NV12) that now has correct properties (width/height/framerate)
+      decoder->SetOutputType(0, output_type, 0);
 
-    UINT32 width = 0;
-    UINT32 height = 0;
-    MFGetAttributeSize(output_type, MF_MT_FRAME_SIZE, &width, &height);
+      UINT32 width = 0;
+      UINT32 height = 0;
+      MFGetAttributeSize(output_type, MF_MT_FRAME_SIZE, &width, &height);
 
-    // input type to converter, BGRX pixel format
-    IMFMediaType* converted_type;
-    if (FAILED(MFCreateMediaType(&converted_type)))
-    {
-      vlog.error("Error creating media type");
-    }
-    else
-    {
-      converted_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-      converted_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
-      converted_type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
-      MFSetAttributeSize(converted_type, MF_MT_FRAME_SIZE, width, height);
-      MFGetStrideForBitmapInfoHeader(MFVideoFormat_RGB32.Data1, width, &stride);
-      // bottom-up
-      stride = -stride;
-      converted_type->SetUINT32(MF_MT_DEFAULT_STRIDE, (UINT32)stride);
-
-      // setup NV12 -> BGRX converter
-      converter->SetOutputType(0, converted_type, 0);
-      converter->SetInputType(0, output_type, 0);
-      converted_type->Release();
-
-      // create converter output buffer
-
-      MFT_OUTPUT_STREAM_INFO info;
-      converter->GetOutputStreamInfo(0, &info);
-
-      if (FAILED(MFCreateMemoryBuffer(info.cbSize, &converted_buffer)))
+      // input type to converter, BGRX pixel format
+      IMFMediaType* converted_type;
+      if (FAILED(MFCreateMediaType(&converted_type)))
       {
-        vlog.error("Error creating media buffer");
+        vlog.error("Error creating media type");
       }
       else
       {
-        converted_sample->AddBuffer(converted_buffer);
-      }
-    }
-    output_type->Release();
+        converted_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+        converted_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+        converted_type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
+        MFSetAttributeSize(converted_type, MF_MT_FRAME_SIZE, width, height);
+        MFGetStrideForBitmapInfoHeader(MFVideoFormat_RGB32.Data1, width, &stride);
+        // bottom-up
+        stride = -stride;
+        converted_type->SetUINT32(MF_MT_DEFAULT_STRIDE, (UINT32)stride);
 
-    // try to decode again 
-    hr = decoder->ProcessOutput(0, 1, &decoded_data, &status);
+        // setup NV12 -> BGRX converter
+        converter->SetOutputType(0, converted_type, 0);
+        converter->SetInputType(0, output_type, 0);
+        converted_type->Release();
+
+        // create converter output buffer
+
+        MFT_OUTPUT_STREAM_INFO info;
+        converter->GetOutputStreamInfo(0, &info);
+
+        if (FAILED(MFCreateMemoryBuffer(info.cbSize, &converted_buffer)))
+        {
+          vlog.error("Error creating media buffer");
+        }
+        else
+        {
+          converted_sample->AddBuffer(converted_buffer);
+        }
+      }
+      output_type->Release();
+    }
   }
 
-  SAFE_RELEASE(decoded_data.pEvents)
-
-  if (SUCCEEDED(hr))
+  // we care only about final image
+  // we ignore previous images if decoded multiple in a row
+  if (decoded)
   {
     if (FAILED(converter->ProcessInput(0, decoded_sample, 0)))
     {
@@ -361,7 +379,8 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
     converted_data.dwStatus = 0;
     converted_data.pEvents = NULL;
 
-    hr = converter->ProcessOutput(0, 1, &converted_data, &status);
+    DWORD status;
+    HRESULT hr = converter->ProcessOutput(0, 1, &converted_data, &status);
     SAFE_RELEASE(converted_data.pEvents)
 
     if (FAILED(hr))

@@ -136,26 +136,60 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
 
   AVPacket packet;
   av_init_packet(&packet);
-  packet.size = len;
-  packet.data = h264_buffer;
 
-  int ret = avcodec_send_packet(avctx, &packet);
-  if (ret < 0)
+  int ret;
+  int frames_received = 0;
+  while (len)
   {
-    vlog.error("Error sending a packet to decoding");
-    return;
+    ret = av_parser_parse2(parser, avctx, &packet.data, &packet.size, h264_buffer, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    if (ret < 0)
+    {
+      vlog.error("Error while parsing");
+      break;
+    }
+    // We need to slap on tv to make it work here (don't ask me why)
+    if (!packet.size && len == static_cast<rdr::U32>(ret))
+      ret = av_parser_parse2(parser, avctx, &packet.data, &packet.size, h264_buffer, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    if (ret < 0)
+    {
+      vlog.error("Error while parsing");
+      break;
+    }
+    h264_buffer += ret;
+    len -= ret;
+
+    if (!ret)
+    {
+      packet.size = len;
+      packet.data = h264_buffer;
+      len = 0;
+    }
+
+    if (!packet.size)
+      continue;
+
+    ret = avcodec_send_packet(avctx, &packet);
+    if (ret < 0)
+    {
+      vlog.error("Error sending a packet to decoding");
+      break;
+    }
+
+    ret = avcodec_receive_frame(avctx, frame);
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+      break;
+    else if (ret < 0)
+    {
+      vlog.error("Error during decoding");
+      break;
+    }
+    frames_received++;
+
+    // vlog.debug("%d frame received", avctx->frame_number);
   }
 
-  ret = avcodec_receive_frame(avctx, frame);
-  if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+  if (!frames_received)
     return;
-  else if (ret < 0)
-  {
-    vlog.error("Error during decoding");
-    return;
-  }
-
-  // vlog.debug("%d frame received", avctx->frame_number);
 
   if (!frame->height)
     return;
@@ -163,6 +197,7 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
   sws = sws_getCachedContext(sws, frame->width, frame->height, avctx->pix_fmt,
                              frame->width, frame->height, AV_PIX_FMT_RGB32,
                              0, NULL, NULL, NULL);
+
   int stride;
   pb->getBuffer(rect, &stride);
   int dst_linesize = stride * pb->getPF().bpp/8;  // stride is in pixels, linesize is in bytes (stride x4). We need bytes

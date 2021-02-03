@@ -263,6 +263,8 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
   memcpy(locked, h264_buffer, len);
   input_buffer->Unlock();
 
+  vlog.debug("Received %u bytes, decoding", len);
+
   if (FAILED(decoder->ProcessInput(0, input_sample, 0)))
   {
     vlog.error("Error sending a packet to decoding");
@@ -288,6 +290,7 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
 
     if (SUCCEEDED(hr))
     {
+      vlog.debug("Frame decoded");
       // successfully decoded next frame
       // but do not exit loop, try again if there is next frame
       decoded = true;
@@ -322,6 +325,7 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
       UINT32 width = 0;
       UINT32 height = 0;
       MFGetAttributeSize(output_type, MF_MT_FRAME_SIZE, &width, &height);
+      vlog.debug("Setting up decoded output with %ux%u size", width, height);
 
       // input type to converter, BGRX pixel format
       IMFMediaType* converted_type;
@@ -389,6 +393,8 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
     }
     else
     {
+      vlog.debug("Frame converted to RGB");
+
       BYTE* out;
       converted_buffer->Lock(&out, NULL, NULL);
       pb->imageRect(rect, out, (int)stride / 4);

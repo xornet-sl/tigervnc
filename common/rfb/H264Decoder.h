@@ -78,9 +78,9 @@ namespace rfb {
       SwsContext* sws = NULL;
       uint8_t* swsBuffer = NULL;
       rdr::U8* h264AlignedBuffer = NULL;
-      rdr::U32 h264AlignedCapacity = 0;
+      rdr::U32 h264AlignedCapacity;
 #endif
-      bool initialized = false;
+      bool initialized;
   };
 
   class H264Decoder : public Decoder {

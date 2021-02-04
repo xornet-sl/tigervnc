@@ -55,6 +55,8 @@ static LogWriter vlog("h264");
 
 H264DecoderContext::H264DecoderContext(const Rect& r) : rect(r)
 {
+  initialized = false;
+  h264AlignedCapacity = 0;
   os::AutoMutex lock(&mutex);
 
   if (!_initCodec())
@@ -559,12 +561,12 @@ bool H264Decoder::readRect(const Rect& r, rdr::InStream* is,
   os->writeU32(len);
   rdr::U32 flags = is->readU32();
 
-  if (flags & rectFlags::resetAllContexts)
+  if (flags & resetAllContexts)
   {
     resetContexts();
     if (!len)
       return false;
-    flags &= ~(rectFlags::resetContext | rectFlags::resetAllContexts);
+    flags &= ~(resetContext | resetAllContexts);
   }
   os->writeU32(flags);
 
@@ -606,7 +608,7 @@ void H264Decoder::decodeRect(const Rect& r, const void* buffer,
   rdr::U32 len = is.readU32();
   rdr::U32 flags = is.readU32();
 
-  if (flags & rectFlags::resetContext)
+  if (flags & resetContext)
     ctx->reset();
 
   if (!len)

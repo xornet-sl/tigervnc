@@ -1,4 +1,5 @@
 /* Copyright (C) 2021 Vladimir Sukhonosov <xornet@xornet.org>
+ * Copyright (C) 2021 Martins Mozeiko <martins.mozeiko@gmail.com>
  * All Rights Reserved.
  * 
  * This is free software; you can redistribute it and/or modify
@@ -23,10 +24,16 @@
 #include <deque>
 #include <vector>
 
+#ifdef WIN32
+#include <windows.h>
+#include <mfidl.h>
+#include <mftransform.h>
+#else
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
+#endif
 
 #include <os/Mutex.h>
 #include <rfb/Decoder.h>
@@ -50,6 +57,17 @@ namespace rfb {
       rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);
 
       Rect rect;
+#ifdef WIN32
+      LONG stride;
+      IMFTransform *decoder = NULL;
+      IMFTransform *converter = NULL;
+      IMFSample *input_sample = NULL;
+      IMFSample *decoded_sample = NULL;
+      IMFSample *converted_sample = NULL;
+      IMFMediaBuffer *input_buffer = NULL;
+      IMFMediaBuffer *decoded_buffer = NULL;
+      IMFMediaBuffer *converted_buffer = NULL;
+#else
       AVCodecContext *avctx;
       AVCodecParserContext *parser;
       AVFrame* frame;
@@ -57,6 +75,7 @@ namespace rfb {
       uint8_t* swsBuffer = NULL;
       rdr::U8* h264AlignedBuffer = NULL;
       rdr::U32 h264AlignedCapacity = 0;
+#endif
       bool initialized = false;
   };
 

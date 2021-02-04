@@ -31,8 +31,12 @@
 #else
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavcodec/version.h>
 #include <libswscale/swscale.h>
 }
+#if LIBAVCODEC_VERSION_MAJOR > 57 || LIBAVCODEC_VERSION_MAJOR == 57 && LIBAVCODEC_VERSION_MINOR >= 37
+#define FFMPEG_DECODE_VIDEO2_DEPRECATED
+#endif
 #endif
 
 #include <os/Mutex.h>

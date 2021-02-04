@@ -455,6 +455,15 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
     if (!packet.size)
       continue;
 
+#ifndef FFMPEG_DECODE_VIDEO2_DEPRECATED
+    int got_frame;
+    ret = avcodec_decode_video2(avctx, frame, &got_frame, &packet);
+    if (ret < 0 || !got_frame)
+    {
+      vlog.error("Error during decoding");
+      break;
+    }
+#else
     ret = avcodec_send_packet(avctx, &packet);
     if (ret < 0)
     {
@@ -470,6 +479,7 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
       vlog.error("Error during decoding");
       break;
     }
+#endif
     frames_received++;
 
     // vlog.debug("%d frame received", avctx->frame_number);

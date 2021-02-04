@@ -98,15 +98,22 @@ bool H264DecoderContext::_initCodec()
   GUID CLSID_VideoProcessorMFT = { 0x88753b26, 0x5b24, 0x49bd, { 0xb2, 0xe7, 0xc, 0x44, 0x5c, 0x78, 0xc9, 0x82 } };
   if (FAILED(CoCreateInstance(CLSID_VideoProcessorMFT, NULL, CLSCTX_INPROC_SERVER, IID_IMFTransform, (LPVOID*)&converter)))
   {
-    vlog.error("MediaFoundation Video Processor not found");
-    return false;
+    vlog.error("Cannot create MediaFoundation Video Processor (available only on Windows 8+). Trying ColorConvert DMO.");
+    if (FAILED(CoCreateInstance(CLSID_CColorConvertDMO, NULL, CLSCTX_INPROC_SERVER, IID_IMFTransform, (LPVOID*)&converter)))
+    {
+      vlog.error("ColorConvert DMO not found");
+      return false;
+    }
   }
 
   // if possible, enable low-latency decoding (Windows 8 and up)
   IMFAttributes* attributes;
   if (SUCCEEDED(decoder->GetAttributes(&attributes)))
   {
-    attributes->SetUINT32(MF_LOW_LATENCY, TRUE);
+    if (SUCCEEDED(attributes->SetUINT32(MF_LOW_LATENCY, TRUE)))
+    {
+      vlog.info("Enabled low latency mode");
+    }
     attributes->Release();
   }
 

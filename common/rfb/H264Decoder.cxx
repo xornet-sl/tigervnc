@@ -284,6 +284,8 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
   // try to retrieve all decoded output, as input can submit multiple h264 packets in one buffer
   for (;;)
   {
+    DWORD curlen;
+    decoded_buffer->GetCurrentLength(&curlen);
     decoded_buffer->SetCurrentLength(0);
 
     MFT_OUTPUT_DATA_BUFFER decoded_data;
@@ -305,7 +307,12 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
     }
     else if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT)
     {
-      // no more frame s to decode
+      // no more frames to decode
+      if (decoded)
+      {
+        // restore previous buffer length for converter
+        decoded_buffer->SetCurrentLength(curlen);
+      }
       break;
     }
     else if (hr == MF_E_TRANSFORM_STREAM_CHANGE)
@@ -397,7 +404,7 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
 
     if (FAILED(hr))
     {
-      vlog.error("Error during conversion");
+      vlog.error("Error converting to RGB");
     }
     else
     {

@@ -1,4 +1,5 @@
 /* Copyright (C) 2021 Vladimir Sukhonosov <xornet@xornet.org>
+ * Copyright (C) 2021 Martins Mozeiko <martins.mozeiko@gmail.com>
  * All Rights Reserved.
  * 
  * This is free software; you can redistribute it and/or modify

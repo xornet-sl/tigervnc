@@ -56,7 +56,9 @@ static LogWriter vlog("h264");
 H264DecoderContext::H264DecoderContext(const Rect& r) : rect(r)
 {
   initialized = false;
+#ifndef WIN32
   h264AlignedCapacity = 0;
+#endif
   os::AutoMutex lock(&mutex);
 
   if (!_initCodec())

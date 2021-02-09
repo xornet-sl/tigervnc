@@ -60,6 +60,7 @@ matrix:
         packages:
           - gettext
           - fltk
+          - libav
     before_install:
     script:
     - cmake -DCMAKE_BUILD_TYPE=Debug . && make && make dmg

@@ -44,7 +44,7 @@ extern "C" {
 
 using namespace rfb;
 
-#define MAX_H264_INSTANCES 255
+#define MAX_H264_INSTANCES 64
 
 enum rectFlags {
   resetContext       = 0x1,

@@ -131,7 +131,7 @@ bool CMsgReader::readMsg()
     }
 
     if (state == MSGSTATE_RECT_HEADER) {
-      if (!is->hasData(12))
+      if (!is->hasData(2 + 2 + 2 + 2 + 4))
         return false;
 
       int x = is->readU16();
@@ -164,6 +164,10 @@ bool CMsgReader::readMsg()
       break;
     case pseudoEncodingVMwareCursor:
       ret = readSetVMwareCursor(dataRect.width(), dataRect.height(), dataRect.tl);
+      break;
+    case pseudoEncodingVMwareCursorPosition:
+      handler->setCursorPos(dataRect.tl);
+      ret = true;
       break;
     case pseudoEncodingDesktopName:
       ret = readSetDesktopName(dataRect.tl.x, dataRect.tl.y,
@@ -207,7 +211,7 @@ bool CMsgReader::readMsg()
 
 bool CMsgReader::readSetColourMapEntries()
 {
-  if (!is->hasData(5))
+  if (!is->hasData(1 + 2 + 2))
     return false;
 
   is->setRestorePoint();
@@ -236,7 +240,7 @@ bool CMsgReader::readBell()
 
 bool CMsgReader::readServerCutText()
 {
-  if (!is->hasData(7))
+  if (!is->hasData(3 + 4))
     return false;
 
   is->setRestorePoint();
@@ -385,7 +389,7 @@ bool CMsgReader::readFence()
   rdr::U8 len;
   char data[64];
 
-  if (!is->hasData(8))
+  if (!is->hasData(3 + 4 + 1))
     return false;
 
   is->setRestorePoint();
@@ -421,7 +425,7 @@ bool CMsgReader::readEndOfContinuousUpdates()
 
 bool CMsgReader::readFramebufferUpdate()
 {
-  if (!is->hasData(3))
+  if (!is->hasData(1 + 2))
     return false;
 
   is->skip(1);
@@ -625,7 +629,7 @@ bool CMsgReader::readSetVMwareCursor(int width, int height, const Point& hotspot
 
   rdr::U8 type;
 
-  if (!is->hasData(2))
+  if (!is->hasData(1 + 1))
     return false;
 
   type = is->readU8();
@@ -756,7 +760,7 @@ bool CMsgReader::readExtendedDesktopSize(int x, int y, int w, int h)
   int sx, sy, sw, sh;
   ScreenSet layout;
 
-  if (!is->hasData(4))
+  if (!is->hasData(1 + 3))
     return false;
 
   is->setRestorePoint();

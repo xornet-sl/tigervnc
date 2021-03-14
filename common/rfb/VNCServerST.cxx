@@ -171,7 +171,7 @@ void VNCServerST::removeSocket(network::Socket* sock) {
       if (pointerClient == *ci)
         pointerClient = NULL;
       if (clipboardClient == *ci)
-        clipboardClient = NULL;
+        handleClipboardAnnounce(*ci, false);
       clipboardRequestors.remove(*ci);
 
       CharArray name(strDup((*ci)->getPeerEndpoint()));
@@ -429,14 +429,17 @@ void VNCServerST::setCursor(int width, int height, const Point& newHotspot,
   }
 }
 
-void VNCServerST::setCursorPos(const Point& pos)
+void VNCServerST::setCursorPos(const Point& pos, bool warped)
 {
   if (!cursorPos.equals(pos)) {
     cursorPos = pos;
     renderedCursorInvalid = true;
     std::list<VNCSConnectionST*>::iterator ci;
-    for (ci = clients.begin(); ci != clients.end(); ci++)
+    for (ci = clients.begin(); ci != clients.end(); ci++) {
       (*ci)->renderedCursorChange();
+      if (warped)
+        (*ci)->cursorPositionChange();
+    }
   }
 }
 
@@ -517,8 +520,10 @@ void VNCServerST::handleClipboardAnnounce(VNCSConnectionST* client,
 void VNCServerST::handleClipboardData(VNCSConnectionST* client,
                                       const char* data)
 {
-  if (client != clipboardClient)
+  if (client != clipboardClient) {
+    slog.debug("Ignoring unexpected clipboard data");
     return;
+  }
   desktop->handleClipboardData(data);
 }
 

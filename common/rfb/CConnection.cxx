@@ -48,6 +48,8 @@ CConnection::CConnection()
 #ifdef HAVE_H264
     useH264Encoding(false),
 #endif
+    supportsLocalCursor(false), supportsCursorPosition(false),
+    supportsDesktopResize(false), supportsLEDState(false),
     is(0), os(0), reader_(0), writer_(0),
     shared(false),
     state_(RFBSTATE_UNINITIALISED),
@@ -551,19 +553,21 @@ void CConnection::handleClipboardCaps(rdr::U32 flags,
 
 void CConnection::handleClipboardRequest(rdr::U32 flags)
 {
-  if (!(flags & rfb::clipboardUTF8))
+  if (!(flags & rfb::clipboardUTF8)) {
+    vlog.debug("Ignoring clipboard request for unsupported formats 0x%x", flags);
     return;
-  if (!hasLocalClipboard)
+  }
+  if (!hasLocalClipboard) {
+    vlog.debug("Ignoring unexpected clipboard request");
     return;
+  }
   handleClipboardRequest();
 }
 
 void CConnection::handleClipboardPeek(rdr::U32 flags)
 {
-  if (!hasLocalClipboard)
-    return;
   if (server.clipboardFlags() & rfb::clipboardNotify)
-    writer()->writeClipboardNotify(rfb::clipboardUTF8);
+    writer()->writeClipboardNotify(hasLocalClipboard ? rfb::clipboardUTF8 : 0);
 }
 
 void CConnection::handleClipboardNotify(rdr::U32 flags)
@@ -583,8 +587,10 @@ void CConnection::handleClipboardProvide(rdr::U32 flags,
                                          const size_t* lengths,
                                          const rdr::U8* const* data)
 {
-  if (!(flags & rfb::clipboardUTF8))
+  if (!(flags & rfb::clipboardUTF8)) {
+    vlog.debug("Ignoring clipboard provide with unsupported formats 0x%x", flags);
     return;
+  }
 
   strFree(serverClipboard);
   serverClipboard = NULL;
@@ -634,13 +640,25 @@ void CConnection::requestClipboard()
 void CConnection::announceClipboard(bool available)
 {
   hasLocalClipboard = available;
+  unsolicitedClipboardAttempt = false;
 
-  if (server.clipboardFlags() & rfb::clipboardNotify)
-    writer()->writeClipboardNotify(available ? rfb::clipboardUTF8 : 0);
-  else {
-    if (available)
-      handleClipboardRequest();
+  // Attempt an unsolicited transfer?
+  if (available &&
+      (server.clipboardSize(rfb::clipboardUTF8) > 0) &&
+      (server.clipboardFlags() & rfb::clipboardProvide)) {
+    vlog.debug("Attempting unsolicited clipboard transfer...");
+    unsolicitedClipboardAttempt = true;
+    handleClipboardRequest();
+    return;
   }
+
+  if (server.clipboardFlags() & rfb::clipboardNotify) {
+    writer()->writeClipboardNotify(available ? rfb::clipboardUTF8 : 0);
+    return;
+  }
+
+  if (available)
+    handleClipboardRequest();
 }
 
 void CConnection::sendClipboardData(const char* data)
@@ -649,6 +667,17 @@ void CConnection::sendClipboardData(const char* data)
     CharArray filtered(convertCRLF(data));
     size_t sizes[1] = { strlen(filtered.buf) + 1 };
     const rdr::U8* data[1] = { (const rdr::U8*)filtered.buf };
+
+    if (unsolicitedClipboardAttempt) {
+      unsolicitedClipboardAttempt = false;
+      if (sizes[0] > server.clipboardSize(rfb::clipboardUTF8)) {
+        vlog.debug("Clipboard was too large for unsolicited clipboard transfer");
+        if (server.clipboardFlags() & rfb::clipboardNotify)
+          writer()->writeClipboardNotify(rfb::clipboardUTF8);
+        return;
+      }
+    }
+
     writer()->writeClipboardProvide(rfb::clipboardUTF8, sizes, data);
   } else {
     CharArray latin1(utf8ToLatin1(data));
@@ -780,6 +809,9 @@ void CConnection::updateEncodings()
     encodings.push_back(pseudoEncodingVMwareCursor);
     encodings.push_back(pseudoEncodingCursor);
     encodings.push_back(pseudoEncodingXCursor);
+  }
+  if (supportsCursorPosition) {
+    encodings.push_back(pseudoEncodingVMwareCursorPosition);
   }
   if (supportsDesktopResize) {
     encodings.push_back(pseudoEncodingDesktopSize);

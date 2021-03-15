@@ -75,9 +75,9 @@ namespace rfb {
       AVCodecContext *avctx;
       AVCodecParserContext *parser;
       AVFrame* frame;
-      SwsContext* sws = NULL;
-      uint8_t* swsBuffer = NULL;
-      rdr::U8* h264AlignedBuffer = NULL;
+      SwsContext* sws;
+      uint8_t* swsBuffer;
+      rdr::U8* h264AlignedBuffer;
       rdr::U32 h264AlignedCapacity;
 #endif
       bool initialized;

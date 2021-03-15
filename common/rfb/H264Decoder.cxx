@@ -57,6 +57,9 @@ H264DecoderContext::H264DecoderContext(const Rect& r) : rect(r)
 {
   initialized = false;
 #ifndef WIN32
+  sws = NULL;
+  swsBuffer = NULL;
+  h264AlignedBuffer = NULL;
   h264AlignedCapacity = 0;
 #endif
   os::AutoMutex lock(&mutex);

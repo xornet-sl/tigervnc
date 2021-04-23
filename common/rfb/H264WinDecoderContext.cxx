@@ -29,6 +29,18 @@
 
 using namespace rfb;
 
+H264WinDecoderContext::H264WinDecoderContext(const Rect &r) : H264DecoderContext(r) {
+  initialized = false;
+  decoder = NULL;
+  converter = NULL;
+  input_sample = NULL;
+  decoded_sample = NULL;
+  converted_sample = NULL;
+  input_buffer = NULL;
+  decoded_buffer = NULL;
+  converted_buffer = NULL;
+}
+
 bool H264WinDecoderContext::initCodec() {
   if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_LITE)))
   {

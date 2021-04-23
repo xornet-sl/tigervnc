@@ -31,7 +31,7 @@ extern "C" {
 namespace rfb {
   struct H264LibavDecoderContext : public H264DecoderContext {
     public:
-      H264LibavDecoderContext(const Rect &r) : H264DecoderContext(r) {}
+      H264LibavDecoderContext(const Rect &r);
       virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
       // virtual void reset();  // Not need to be overrided
   
@@ -42,12 +42,12 @@ namespace rfb {
     private:
       rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);
 
-      AVCodecContext *avctx = NULL;
-      AVCodecParserContext *parser = NULL;
-      AVFrame* frame = NULL;
-      SwsContext* sws = NULL;
-      uint8_t* swsBuffer = NULL;
-      rdr::U8* h264AlignedBuffer = NULL;
+      AVCodecContext *avctx;
+      AVCodecParserContext *parser;
+      AVFrame* frame;
+      SwsContext* sws;
+      uint8_t* swsBuffer;
+      rdr::U8* h264AlignedBuffer;
       rdr::U32 h264AlignedCapacity;
   };
 }

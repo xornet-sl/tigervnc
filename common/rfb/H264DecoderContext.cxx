@@ -27,9 +27,7 @@ using namespace rfb;
 
 H264DecoderContext::H264DecoderContext(const Rect &r) : rect(r)
 {
-  os::AutoMutex lock(&mutex);
   initialized = false;
-  delete vlog;
   vlog = new LogWriter("h264 context");
 
   if (!initCodec())
@@ -40,7 +38,6 @@ H264DecoderContext::H264DecoderContext(const Rect &r) : rect(r)
 }
 
 H264DecoderContext::~H264DecoderContext() {
-  os::AutoMutex lock(&mutex);
   freeCodec();
   initialized = false;
   delete vlog;
@@ -48,7 +45,6 @@ H264DecoderContext::~H264DecoderContext() {
 
 void H264DecoderContext::reset()
 {
-  os::AutoMutex lock(&mutex);
   initialized = false;
   freeCodec();
   initialized = initCodec();

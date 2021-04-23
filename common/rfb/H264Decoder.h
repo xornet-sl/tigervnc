@@ -42,7 +42,7 @@ namespace rfb {
     private:
       void resetContexts();
       H264DecoderContext* newContext(const Rect &r);
-      H264DecoderContext* findContext(const Rect& r, bool lock = false);
+      H264DecoderContext* findContext(const Rect& r);
 
       os::Mutex mutex;
       std::deque<H264DecoderContext*> contexts;

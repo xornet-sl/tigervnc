@@ -32,6 +32,16 @@ extern "C" {
 
 using namespace rfb;
 
+H264LibavDecoderContext::H264LibavDecoderContext(const Rect &r) : H264DecoderContext(r) {
+  initialized = false;
+  avctx = NULL;
+  parser = NULL;
+  frame = NULL;
+  sws = NULL;
+  swsBuffer = NULL;
+  h264AlignedBuffer = NULL;
+}
+
 bool H264LibavDecoderContext::initCodec() {
   sws = NULL;
   swsBuffer = NULL;

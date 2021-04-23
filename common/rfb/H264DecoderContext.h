@@ -33,8 +33,6 @@
 namespace rfb {
   struct H264DecoderContext {
     public:
-      os::Mutex mutex;
-
       H264DecoderContext(const Rect &r);
       virtual ~H264DecoderContext();
 
@@ -47,7 +45,7 @@ namespace rfb {
     protected:
       LogWriter *vlog;
       rfb::Rect rect;
-      bool initialized = false;
+      bool initialized;
 
       virtual bool initCodec() { return false; }
       virtual void freeCodec() {}

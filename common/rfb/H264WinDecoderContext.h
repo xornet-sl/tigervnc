@@ -30,7 +30,7 @@
 namespace rfb {
   struct H264WinDecoderContext : public H264DecoderContext {
     public:
-      H264WinDecoderContext(const Rect &r) : H264DecoderContext(r) {};
+      H264WinDecoderContext(const Rect &r) : H264DecoderContext(r);
       virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
       // virtual void reset();  // Not need to be overrided
   
@@ -40,14 +40,14 @@ namespace rfb {
 
     private:
       LONG stride;
-      IMFTransform *decoder = NULL;
-      IMFTransform *converter = NULL;
-      IMFSample *input_sample = NULL;
-      IMFSample *decoded_sample = NULL;
-      IMFSample *converted_sample = NULL;
-      IMFMediaBuffer *input_buffer = NULL;
-      IMFMediaBuffer *decoded_buffer = NULL;
-      IMFMediaBuffer *converted_buffer = NULL;
+      IMFTransform *decoder;
+      IMFTransform *converter;
+      IMFSample *input_sample;
+      IMFSample *decoded_sample;
+      IMFSample *converted_sample;
+      IMFMediaBuffer *input_buffer;
+      IMFMediaBuffer *decoded_buffer;
+      IMFMediaBuffer *converted_buffer;
   };
 }
 

@@ -30,7 +30,7 @@
 namespace rfb {
   struct H264WinDecoderContext : public H264DecoderContext {
     public:
-      H264WinDecoderContext(const Rect &r) : H264DecoderContext(r);
+      H264WinDecoderContext(const Rect &r);
       virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
       // virtual void reset();  // Not need to be overrided
   

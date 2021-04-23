@@ -18,7 +18,6 @@
  * USA.
  */
 
-//TODO:
 #ifndef __RFB_H264DECODER_H__
 #define __RFB_H264DECODER_H__
 

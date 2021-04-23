@@ -18,35 +18,38 @@
  * USA.
  */
 
-//TODO:
-#ifndef __RFB_H264DECODER_H__
-#define __RFB_H264DECODER_H__
-
-#include <deque>
-
 #include <os/Mutex.h>
-#include <rfb/Decoder.h>
+#include <rfb/LogWriter.h>
 
 #include <rfb/H264DecoderContext.h>
 
-namespace rfb {
-  class H264Decoder : public Decoder {
-    public:
-      H264Decoder();
-      virtual ~H264Decoder();
-      virtual bool readRect(const Rect& r, rdr::InStream* is,
-                            const ServerParams& server, rdr::OutStream* os);
-      virtual void decodeRect(const Rect& r, const void* buffer,
-                              size_t buflen, const ServerParams& server,
-                              ModifiablePixelBuffer* pb);
-    private:
-      void resetContexts();
-      H264DecoderContext* newContext(const Rect &r);
-      H264DecoderContext* findContext(const Rect& r, bool lock = false);
+using namespace rfb;
 
-      os::Mutex mutex;
-      std::deque<H264DecoderContext*> contexts;
-  };
+H264DecoderContext::H264DecoderContext(const Rect &r) : rect(r)
+{
+  os::AutoMutex lock(&mutex);
+  initialized = false;
+  delete vlog;
+  vlog = new LogWriter("h264 context");
+
+  if (!initCodec())
+    return;
+  
+  vlog->info("Context created");
+  initialized = true;
 }
 
-#endif
+H264DecoderContext::~H264DecoderContext() {
+  os::AutoMutex lock(&mutex);
+  freeCodec();
+  initialized = false;
+  delete vlog;
+}
+
+void H264DecoderContext::reset()
+{
+  os::AutoMutex lock(&mutex);
+  initialized = false;
+  freeCodec();
+  initialized = initCodec();
+}

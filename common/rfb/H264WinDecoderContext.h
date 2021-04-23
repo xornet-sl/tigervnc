@@ -18,34 +18,36 @@
  * USA.
  */
 
-//TODO:
-#ifndef __RFB_H264DECODER_H__
-#define __RFB_H264DECODER_H__
+#ifndef __RFB_H264WINDECODER_H__
+#define __RFB_H264WINDECODER_H__
 
-#include <deque>
-
-#include <os/Mutex.h>
-#include <rfb/Decoder.h>
+#include <windows.h>
+#include <mfidl.h>
+#include <mftransform.h>
 
 #include <rfb/H264DecoderContext.h>
 
 namespace rfb {
-  class H264Decoder : public Decoder {
+  struct H264WinDecoderContext : public H264DecoderContext {
     public:
-      H264Decoder();
-      virtual ~H264Decoder();
-      virtual bool readRect(const Rect& r, rdr::InStream* is,
-                            const ServerParams& server, rdr::OutStream* os);
-      virtual void decodeRect(const Rect& r, const void* buffer,
-                              size_t buflen, const ServerParams& server,
-                              ModifiablePixelBuffer* pb);
-    private:
-      void resetContexts();
-      H264DecoderContext* newContext(const Rect &r);
-      H264DecoderContext* findContext(const Rect& r, bool lock = false);
+      H264WinDecoderContext(const Rect &r) : H264DecoderContext(r) {};
+      virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
+      // virtual void reset();  // Not need to be overrided
+  
+    protected:
+      bool initCodec();
+      void freeCodec();
 
-      os::Mutex mutex;
-      std::deque<H264DecoderContext*> contexts;
+    private:
+      LONG stride;
+      IMFTransform *decoder = NULL;
+      IMFTransform *converter = NULL;
+      IMFSample *input_sample = NULL;
+      IMFSample *decoded_sample = NULL;
+      IMFSample *converted_sample = NULL;
+      IMFMediaBuffer *input_buffer = NULL;
+      IMFMediaBuffer *decoded_buffer = NULL;
+      IMFMediaBuffer *converted_buffer = NULL;
   };
 }
 

@@ -18,34 +18,39 @@
  * USA.
  */
 
-//TODO:
-#ifndef __RFB_H264DECODER_H__
-#define __RFB_H264DECODER_H__
+#ifndef __RFB_H264DECODERCONTEXT_H__
+#define __RFB_H264DECODERCONTEXT_H__
 
 #include <deque>
+#include <vector>
 
+#include <rdr/types.h>
 #include <os/Mutex.h>
+#include <rfb/Rect.h>
 #include <rfb/Decoder.h>
-
-#include <rfb/H264DecoderContext.h>
+#include <rfb/LogWriter.h>
 
 namespace rfb {
-  class H264Decoder : public Decoder {
+  struct H264DecoderContext {
     public:
-      H264Decoder();
-      virtual ~H264Decoder();
-      virtual bool readRect(const Rect& r, rdr::InStream* is,
-                            const ServerParams& server, rdr::OutStream* os);
-      virtual void decodeRect(const Rect& r, const void* buffer,
-                              size_t buflen, const ServerParams& server,
-                              ModifiablePixelBuffer* pb);
-    private:
-      void resetContexts();
-      H264DecoderContext* newContext(const Rect &r);
-      H264DecoderContext* findContext(const Rect& r, bool lock = false);
-
       os::Mutex mutex;
-      std::deque<H264DecoderContext*> contexts;
+
+      H264DecoderContext(const Rect &r);
+      virtual ~H264DecoderContext();
+
+      virtual void decode(rdr::U8* h624_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb) {}
+      virtual void reset();
+
+      inline bool isEqualRect(const Rect &r) const { return 0 == memcmp(&rect, &r, sizeof(Rect)); }
+      inline bool isReady() const { return initialized; }
+    
+    protected:
+      LogWriter *vlog;
+      rfb::Rect rect;
+      bool initialized = false;
+
+      virtual bool initCodec() { return false; }
+      virtual void freeCodec() {}
   };
 }
 

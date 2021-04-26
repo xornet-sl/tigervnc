@@ -65,12 +65,7 @@ set(RFB_SOURCES
   util.cxx)
 
 if(ENABLE_H264)
-  set(RFB_SOURCES ${RFB_SOURCES} H264Decoder.cxx H264DecoderContext.cxx)
-  if(H264_LIBS STREQUAL "LIBAV")
-    set(RFB_SOURCES ${RFB_SOURCES} H264LibavDecoderContext.cxx)
-  elseif(H264_LIBS STREQUAL "WIN")
-    set(RFB_SOURCES ${RFB_SOURCES} H264WinDecoderContext.cxx)
-  endif()
+  set(RFB_SOURCES ${RFB_SOURCES} H264Decoder.cxx)
 endif()
 
 if(UNIX)

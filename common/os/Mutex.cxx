@@ -36,8 +36,10 @@ Mutex::Mutex()
 #else
   int ret;
 
+  pthread_mutexattr_init(&ma);
+  pthread_mutexattr_settype(&ma, PTHREAD_MUTEX_RECURSIVE);  // Windows CriticalSections are recursive too
   systemMutex = new pthread_mutex_t;
-  ret = pthread_mutex_init((pthread_mutex_t*)systemMutex, NULL);
+  ret = pthread_mutex_init((pthread_mutex_t*)systemMutex, &ma);
   if (ret != 0)
     throw rdr::SystemException("Failed to create mutex", ret);
 #endif

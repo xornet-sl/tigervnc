@@ -22,30 +22,85 @@
 #define __RFB_H264DECODER_H__
 
 #include <deque>
+#include <vector>
+
+#ifdef WIN32
+#include <windows.h>
+#include <mfidl.h>
+#include <mftransform.h>
+#else
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavcodec/version.h>
+#include <libswscale/swscale.h>
+}
+#if LIBAVCODEC_VERSION_MAJOR > 57 || LIBAVCODEC_VERSION_MAJOR == 57 && LIBAVCODEC_VERSION_MINOR >= 37
+#define FFMPEG_DECODE_VIDEO2_DEPRECATED
+#endif
+#endif
 
 #include <os/Mutex.h>
 #include <rfb/Decoder.h>
 
-#include <rfb/H264DecoderContext.h>
-
 namespace rfb {
-  class H264Decoder : public Decoder {
+  struct H264DecoderContext {
     public:
-      H264Decoder();
-      virtual ~H264Decoder();
-      virtual bool readRect(const Rect& r, rdr::InStream* is,
-                            const ServerParams& server, rdr::OutStream* os);
-      virtual void decodeRect(const Rect& r, const void* buffer,
-                              size_t buflen, const ServerParams& server,
-                              ModifiablePixelBuffer* pb);
-    private:
-      void resetContexts();
-      H264DecoderContext* newContext(const Rect &r);
-      H264DecoderContext* findContext(const Rect& r);
+      H264DecoderContext(const Rect& r);
+      ~H264DecoderContext();
+
+      void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
+      void reset();
+      inline bool isEqualRect(const Rect& r) const { return 0 == memcmp(&rect, &r, sizeof(Rect)); }
+      inline bool isReady() const { return initialized; }
 
       os::Mutex mutex;
-      std::deque<H264DecoderContext*> contexts;
+
+    private:
+      bool _initCodec();
+      void _freeCodec();
+      rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);
+
+      Rect rect;
+#ifdef WIN32
+      LONG stride;
+      IMFTransform *decoder = NULL;
+      IMFTransform *converter = NULL;
+      IMFSample *input_sample = NULL;
+      IMFSample *decoded_sample = NULL;
+      IMFSample *converted_sample = NULL;
+      IMFMediaBuffer *input_buffer = NULL;
+      IMFMediaBuffer *decoded_buffer = NULL;
+      IMFMediaBuffer *converted_buffer = NULL;
+#else
+      AVCodecContext *avctx;
+      AVCodecParserContext *parser;
+      AVFrame* frame;
+      SwsContext* sws;
+      uint8_t* swsBuffer;
+      rdr::U8* h264AlignedBuffer;
+      rdr::U32 h264AlignedCapacity;
+#endif
+      bool initialized;
+  };
+
+  class H264Decoder : public Decoder {
+  public:
+    H264Decoder();
+    virtual ~H264Decoder();
+    virtual bool readRect(const Rect& r, rdr::InStream* is,
+                          const ServerParams& server, rdr::OutStream* os);
+    virtual void decodeRect(const Rect& r, const void* buffer,
+                            size_t buflen, const ServerParams& server,
+                            ModifiablePixelBuffer* pb);
+
+  private:
+    void resetContexts();
+    H264DecoderContext* findContext(const Rect& r, bool lock = false);
+
+    os::Mutex mutex;
+    std::deque<H264DecoderContext*> contexts;
   };
 }
+
 
 #endif

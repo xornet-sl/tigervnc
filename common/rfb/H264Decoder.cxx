@@ -428,22 +428,21 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
   
   h264_buffer = validateH264BufferLength(h264_buffer, len);
 
-  AVPacket packet;
-  av_init_packet(&packet);
+  AVPacket *packet = av_packet_alloc();
 
   int ret;
   int frames_received = 0;
   while (len)
   {
-    ret = av_parser_parse2(parser, avctx, &packet.data, &packet.size, h264_buffer, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    ret = av_parser_parse2(parser, avctx, &packet->data, &packet->size, h264_buffer, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
     if (ret < 0)
     {
       vlog.error("Error while parsing");
       break;
     }
     // We need to slap on tv to make it work here (don't ask me why)
-    if (!packet.size && len == static_cast<rdr::U32>(ret))
-      ret = av_parser_parse2(parser, avctx, &packet.data, &packet.size, h264_buffer, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
+    if (!packet->size && len == static_cast<rdr::U32>(ret))
+      ret = av_parser_parse2(parser, avctx, &packet->data, &packet->size, h264_buffer, len, AV_NOPTS_VALUE, AV_NOPTS_VALUE, 0);
     if (ret < 0)
     {
       vlog.error("Error while parsing");
@@ -454,12 +453,12 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
 
     if (!ret)
     {
-      packet.size = len;
-      packet.data = h264_buffer;
+      packet->size = len;
+      packet->data = h264_buffer;
       len = 0;
     }
 
-    if (!packet.size)
+    if (!packet->size)
       continue;
 
 #ifndef FFMPEG_DECODE_VIDEO2_DEPRECATED
@@ -471,7 +470,7 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
       break;
     }
 #else
-    ret = avcodec_send_packet(avctx, &packet);
+    ret = avcodec_send_packet(avctx, packet);
     if (ret < 0)
     {
       vlog.error("Error sending a packet to decoding");
@@ -491,6 +490,10 @@ void H264DecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 fla
 
     // vlog.debug("%d frame received", avctx->frame_number);
   }
+
+  packet->size = 0;
+  packet->data = NULL;
+  av_packet_free(&packet);
 
   if (!frames_received)
     return;

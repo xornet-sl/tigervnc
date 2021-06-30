@@ -54,7 +54,6 @@ H264DecoderContext::~H264DecoderContext()
 
 void H264DecoderContext::reset()
 {
-  os::AutoMutex lock(&mutex);
   initialized = false;
   freeCodec();
   initialized = initCodec();

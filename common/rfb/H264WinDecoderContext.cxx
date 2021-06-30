@@ -121,7 +121,6 @@ bool H264WinDecoderContext::initCodec() {
 }
 
 void H264WinDecoderContext::freeCodec() {
-  os::AutoMutex lock(&mutex);
   if (!initialized)
     return;
   SAFE_RELEASE(decoder)

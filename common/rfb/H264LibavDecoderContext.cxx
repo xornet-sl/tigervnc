@@ -83,7 +83,6 @@ bool H264LibavDecoderContext::initCodec() {
 }
 
 void H264LibavDecoderContext::freeCodec() {
-  os::AutoMutex lock(&mutex);
   if (!initialized)
     return;
   av_parser_close(parser);

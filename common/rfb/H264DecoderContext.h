@@ -32,8 +32,6 @@
 namespace rfb {
   class H264DecoderContext {
     public:
-      os::Mutex mutex;
-
       static H264DecoderContext *createContext(const Rect &r);
 
       virtual ~H264DecoderContext() = 0;

@@ -54,16 +54,12 @@ void H264Decoder::resetContexts()
   contexts.clear();
 }
 
-H264DecoderContext* H264Decoder::findContext(const Rect& r, bool lock)
+H264DecoderContext* H264Decoder::findContext(const Rect& r)
 {
   os::AutoMutex m(&mutex);
   for (std::deque<H264DecoderContext*>::iterator it = contexts.begin(); it != contexts.end(); it++)
     if ((*it)->isEqualRect(r))
-    {
-      if (lock)
-        (*it)->mutex.lock();
       return *it;
-    }
   return NULL;
 }
 
@@ -97,9 +93,9 @@ bool H264Decoder::readRect(const Rect& r, rdr::InStream* is,
 
   os->copyBytes(is, len);
 
-  os::AutoMutex lock(&mutex);
   if (!findContext(r))
   {
+    os::AutoMutex lock(&mutex);
     if (contexts.size() >= MAX_H264_INSTANCES)
     {
       delete contexts.front();
@@ -118,13 +114,12 @@ void H264Decoder::decodeRect(const Rect& r, const void* buffer,
                              size_t buflen, const ServerParams& server,
                              ModifiablePixelBuffer* pb)
 {
-  H264DecoderContext* ctx = findContext(r, true);
+  H264DecoderContext* ctx = findContext(r);
   if (!ctx)
   {
     vlog.error("Context not found for decoding rect");
     return;
   }
-  os::AutoMutex lock(&ctx->mutex, true);
   if (!ctx->isReady())
     return;
   rdr::MemInStream is(buffer, buflen);

@@ -19,10 +19,6 @@
 #ifndef __OS_MUTEX_H__
 #define __OS_MUTEX_H__
 
-#ifndef WIN32
-#include <pthread.h>
-#endif
-
 namespace os {
   class Condition;
 
@@ -39,9 +35,6 @@ namespace os {
     friend class Condition;
 
     void* systemMutex;
-#ifndef WIN32
-    pthread_mutexattr_t ma;
-#endif
   };
 
   class AutoMutex {

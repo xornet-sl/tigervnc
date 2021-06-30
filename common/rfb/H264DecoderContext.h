@@ -21,11 +21,7 @@
 #ifndef __RFB_H264DECODERCONTEXT_H__
 #define __RFB_H264DECODERCONTEXT_H__
 
-#include <deque>
-#include <vector>
-
 #include <rdr/types.h>
-#include <os/Mutex.h>
 #include <rfb/Rect.h>
 #include <rfb/Decoder.h>
 
@@ -44,9 +40,9 @@ namespace rfb {
 
     protected:
       rfb::Rect rect;
-      bool initialized = false;
+      bool initialized;
 
-      H264DecoderContext(const Rect &r) : rect(r) {};
+      H264DecoderContext(const Rect &r) : rect(r) { initialized = false; }
 
       virtual bool initCodec() { return false; }
       virtual void freeCodec() {}

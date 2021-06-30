@@ -28,7 +28,7 @@
 #include <rfb/H264DecoderContext.h>
 
 namespace rfb {
-  struct H264WinDecoderContext : public H264DecoderContext {
+  class H264WinDecoderContext : public H264DecoderContext {
     public:
       H264WinDecoderContext(const Rect &r) : H264DecoderContext(r) {};
       ~H264WinDecoderContext() { freeCodec(); }
@@ -36,8 +36,8 @@ namespace rfb {
       virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
 
     protected:
-      bool initCodec() override;
-      void freeCodec() override;
+      virtual bool initCodec();
+      virtual void freeCodec();
 
     private:
       LONG stride;

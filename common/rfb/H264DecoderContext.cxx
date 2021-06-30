@@ -18,7 +18,6 @@
  * USA.
  */
 
-#include <os/Mutex.h>
 #include <rfb/LogWriter.h>
 
 #include <rfb/H264DecoderContext.h>

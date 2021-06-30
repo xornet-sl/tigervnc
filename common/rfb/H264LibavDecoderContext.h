@@ -37,8 +37,8 @@ namespace rfb {
       virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
 
     protected:
-      bool initCodec() override;
-      void freeCodec() override;
+      virtual bool initCodec();
+      virtual void freeCodec();
 
     private:
       rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);

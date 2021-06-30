@@ -18,7 +18,6 @@
  * USA.
  */
 
-#include <rfb/PixelBuffer.h>
 
 extern "C" {
 #include <libavutil/imgutils.h>
@@ -27,8 +26,12 @@ extern "C" {
 #if LIBAVCODEC_VERSION_MAJOR > 57 || LIBAVCODEC_VERSION_MAJOR == 57 && LIBAVCODEC_VERSION_MINOR >= 37
 #define FFMPEG_DECODE_VIDEO2_DEPRECATED
 #endif
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+#define FFMPEG_INIT_PACKET_DEPRECATED
+#endif
 
 #include <rfb/LogWriter.h>
+#include <rfb/PixelBuffer.h>
 #include <rfb/H264LibavDecoderContext.h>
 
 using namespace rfb;
@@ -113,7 +116,12 @@ rdr::U8* H264LibavDecoderContext::validateH264BufferLength(rdr::U8* buffer, rdr:
 void H264LibavDecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb) {
   h264_buffer = validateH264BufferLength(h264_buffer, len);
 
+#ifdef FFMPEG_INIT_PACKET_DEPRECATED
   AVPacket *packet = av_packet_alloc();
+#else
+  AVPacket *packet = new AVPacket();
+  av_init_packet(packet);
+#endif
 
   int ret;
   int frames_received = 0;
@@ -176,9 +184,13 @@ void H264LibavDecoderContext::decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U3
     // vlog.debug("%d frame received", avctx->frame_number);
   }
 
+#ifdef FFMPEG_INIT_PACKET_DEPRECATED
   packet->size = 0;
   packet->data = NULL;
   av_packet_free(&packet);
+#else
+  delete packet;
+#endif
 
   if (!frames_received)
     return;

@@ -26,6 +26,7 @@
 #define SAFE_RELEASE(obj) if (obj) { obj->Release(); obj = NULL; }
 
 #include <rfb/LogWriter.h>
+#include <rfb/PixelBuffer.h>
 #include <rfb/H264WinDecoderContext.h>
 
 using namespace rfb;

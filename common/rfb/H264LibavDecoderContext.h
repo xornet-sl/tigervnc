@@ -43,12 +43,12 @@ namespace rfb {
     private:
       rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);
 
-      AVCodecContext *avctx = NULL;
-      AVCodecParserContext *parser = NULL;
-      AVFrame* frame = NULL;
-      SwsContext* sws = NULL;
-      uint8_t* swsBuffer = NULL;
-      rdr::U8* h264AlignedBuffer = NULL;
+      AVCodecContext *avctx;
+      AVCodecParserContext *parser;
+      AVFrame* frame;
+      SwsContext* sws;
+      uint8_t* swsBuffer;
+      rdr::U8* h264AlignedBuffer;
       rdr::U32 h264AlignedCapacity;
   };
 }

@@ -190,6 +190,7 @@ option(ENABLE_H264 "Enable H.264 RFB encoding" ON)
 if(ENABLE_H264)
   if(WIN32)
     add_definitions("-DHAVE_H264")
+    set(H264_LIBS "WIN")  # may be LIBAV in the future
     set(FFMPEG_LIBRARIES ole32 mfplat mfuuid wmcodecdspuuid)
   else()
     find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
@@ -206,8 +207,10 @@ if(ENABLE_H264)
     set(FFMPEG_LIBRARIES ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${SWSCALE_LIBRARY})
     add_definitions("-D__STDC_CONSTANT_MACROS")
     add_definitions("-DHAVE_H264")
+    set(H264_LIBS "LIBAV")
     # set(CMAKE_REQUIRED_LIBRARIES ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY})
   endif()
+  add_definitions("-DH264_${H264_LIBS}")
 endif()
 
 # Check for libjpeg

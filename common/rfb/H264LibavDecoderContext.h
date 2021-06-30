@@ -18,33 +18,38 @@
  * USA.
  */
 
-#ifndef __RFB_H264DECODER_H__
-#define __RFB_H264DECODER_H__
+#ifndef __RFB_H264LIBAVDECODER_H__
+#define __RFB_H264LIBAVDECODER_H__
 
-#include <deque>
-
-#include <os/Mutex.h>
-#include <rfb/Decoder.h>
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
+}
 
 #include <rfb/H264DecoderContext.h>
 
 namespace rfb {
-  class H264Decoder : public Decoder {
-  public:
-    H264Decoder();
-    virtual ~H264Decoder();
-    virtual bool readRect(const Rect& r, rdr::InStream* is,
-                          const ServerParams& server, rdr::OutStream* os);
-    virtual void decodeRect(const Rect& r, const void* buffer,
-                            size_t buflen, const ServerParams& server,
-                            ModifiablePixelBuffer* pb);
+  class H264LibavDecoderContext : public H264DecoderContext {
+    public:
+      H264LibavDecoderContext(const Rect &r) : H264DecoderContext(r) {}
+      ~H264LibavDecoderContext() { freeCodec(); }
 
-  private:
-    void resetContexts();
-    H264DecoderContext* findContext(const Rect& r, bool lock = false);
+      virtual void decode(rdr::U8* h264_buffer, rdr::U32 len, rdr::U32 flags, ModifiablePixelBuffer* pb);
 
-    os::Mutex mutex;
-    std::deque<H264DecoderContext*> contexts;
+    protected:
+      bool initCodec() override;
+      void freeCodec() override;
+
+    private:
+      rdr::U8* validateH264BufferLength(rdr::U8* buffer, rdr::U32 len);
+
+      AVCodecContext *avctx = NULL;
+      AVCodecParserContext *parser = NULL;
+      AVFrame* frame = NULL;
+      SwsContext* sws = NULL;
+      uint8_t* swsBuffer = NULL;
+      rdr::U8* h264AlignedBuffer = NULL;
+      rdr::U32 h264AlignedCapacity;
   };
 }
 

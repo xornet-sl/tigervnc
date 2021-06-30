@@ -18,34 +18,44 @@
  * USA.
  */
 
-#ifndef __RFB_H264DECODER_H__
-#define __RFB_H264DECODER_H__
-
-#include <deque>
-
 #include <os/Mutex.h>
-#include <rfb/Decoder.h>
+#include <rfb/LogWriter.h>
 
 #include <rfb/H264DecoderContext.h>
 
-namespace rfb {
-  class H264Decoder : public Decoder {
-  public:
-    H264Decoder();
-    virtual ~H264Decoder();
-    virtual bool readRect(const Rect& r, rdr::InStream* is,
-                          const ServerParams& server, rdr::OutStream* os);
-    virtual void decodeRect(const Rect& r, const void* buffer,
-                            size_t buflen, const ServerParams& server,
-                            ModifiablePixelBuffer* pb);
+#ifdef H264_LIBAV
+#include <rfb/H264LibavDecoderContext.h>
+#define H254DecoderContextType H264LibavDecoderContext
+#elif H264_WIN
+#include <rfb/H264WinDecoderContext.h>
+#define H254DecoderContextType H264WinDecoderContext
+#endif
 
-  private:
-    void resetContexts();
-    H264DecoderContext* findContext(const Rect& r, bool lock = false);
+using namespace rfb;
 
-    os::Mutex mutex;
-    std::deque<H264DecoderContext*> contexts;
-  };
+static LogWriter vlog("H264DecoderContext");
+
+H264DecoderContext *H264DecoderContext::createContext(const Rect &r)
+{
+  H264DecoderContext *ret = new H254DecoderContextType(r);
+  if (!ret->initCodec())
+  {
+    vlog.error("Context can not be initialized");
+    return NULL;
+  }
+
+  vlog.info("Context created");
+  return ret;
 }
 
-#endif
+H264DecoderContext::~H264DecoderContext()
+{
+}
+
+void H264DecoderContext::reset()
+{
+  os::AutoMutex lock(&mutex);
+  initialized = false;
+  freeCodec();
+  initialized = initCodec();
+}

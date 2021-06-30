@@ -152,6 +152,11 @@ void OptionsDialog::loadOptions(void)
   case encodingHextile:
     hextileButton->setonly();
     break;
+#ifdef HAVE_H264
+  case encodingH264:
+    h264Button->setonly();
+    break;
+#endif
   case encodingRaw:
     rawButton->setonly();
     break;
@@ -181,9 +186,6 @@ void OptionsDialog::loadOptions(void)
   compressionInput->value(digit);
   digit[0] = '0' + qualityLevel;
   jpegInput->value(digit);
-#ifdef HAVE_H264
-  H264Checkbox->value(useH264Encoding);
-#endif
 
   handleAutoselect(autoselectCheckbox, this);
   handleCompression(compressionCheckbox, this);
@@ -321,6 +323,10 @@ void OptionsDialog::storeOptions(void)
     preferredEncoding.setParam(encodingName(encodingZRLE));
   else if (hextileButton->value())
     preferredEncoding.setParam(encodingName(encodingHextile));
+#ifdef HAVE_H264
+  else if (h264Button->value())
+    preferredEncoding.setParam(encodingName(encodingH264));
+#endif
   else if (rawButton->value())
     preferredEncoding.setParam(encodingName(encodingRaw));
 
@@ -336,9 +342,6 @@ void OptionsDialog::storeOptions(void)
   noJpeg.setParam(!jpegCheckbox->value());
   compressLevel.setParam(atoi(compressionInput->value()));
   qualityLevel.setParam(atoi(jpegInput->value()));
-#ifdef HAVE_H264
-  useH264Encoding.setParam(H264Checkbox->value());
-#endif
 
 #ifdef HAVE_GNUTLS
   /* Security */
@@ -431,6 +434,7 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
   Fl_Group *group = new Fl_Group(tx, ty, tw, th, _("Compression"));
 
   int orig_tx, orig_ty;
+  int col1_ty, col2_ty;
   int half_width, full_width;
   int height;
 
@@ -454,7 +458,7 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
 
   /* VNC encoding box */
   ty += GROUP_LABEL_OFFSET;
-  height = GROUP_MARGIN * 2 + TIGHT_MARGIN * 3 + RADIO_HEIGHT * 4;
+  height = GROUP_MARGIN * 2 + TIGHT_MARGIN * 4 + RADIO_HEIGHT * 5;
   encodingGroup = new Fl_Group(tx, ty, half_width, height,
                                 _("Preferred encoding"));
   encodingGroup->box(FL_ENGRAVED_BOX);
@@ -485,6 +489,15 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
     hextileButton->type(FL_RADIO_BUTTON);
     ty += RADIO_HEIGHT + TIGHT_MARGIN;
 
+#ifdef HAVE_H264
+    h264Button = new Fl_Round_Button(LBLRIGHT(tx, ty,
+                                             RADIO_MIN_WIDTH,
+                                             RADIO_HEIGHT,
+                                             "H.264"));
+    h264Button->type(FL_RADIO_BUTTON);
+    ty += RADIO_HEIGHT + TIGHT_MARGIN;
+#endif
+
     rawButton = new Fl_Round_Button(LBLRIGHT(tx, ty,
                                              RADIO_MIN_WIDTH,
                                              RADIO_HEIGHT,
@@ -496,6 +509,7 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
   ty += GROUP_MARGIN - TIGHT_MARGIN;
 
   encodingGroup->end();
+  col1_ty = ty;
 
   /* Second column */
   tx = orig_tx + half_width + INNER_MARGIN;
@@ -544,10 +558,11 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
   ty += GROUP_MARGIN - TIGHT_MARGIN;
 
   colorlevelGroup->end();
+  col2_ty = ty;
 
   /* Back to normal */
   tx = orig_tx;
-  ty += INNER_MARGIN;
+  ty = (col1_ty > col2_ty ? col1_ty : col2_ty) + INNER_MARGIN;
 
   /* Checkboxes */
   compressionCheckbox = new Fl_Check_Button(LBLRIGHT(tx, ty,
@@ -575,14 +590,6 @@ void OptionsDialog::createCompressionPage(int tx, int ty, int tw, int th)
                                _("quality (0=poor, 9=best)"));
   jpegInput->align(FL_ALIGN_RIGHT);
   ty += INPUT_HEIGHT + INNER_MARGIN;
-
-#ifdef HAVE_H264
-  H264Checkbox = new Fl_Check_Button(LBLRIGHT(tx, ty,
-                                              CHECK_MIN_WIDTH,
-                                              CHECK_HEIGHT,
-                                              _("Allow and prefer H.264 encoding")));
-  ty += CHECK_HEIGHT + TIGHT_MARGIN;
-#endif
 
   group->end();
 }

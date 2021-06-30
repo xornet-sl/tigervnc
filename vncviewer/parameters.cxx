@@ -99,10 +99,6 @@ BoolParameter noJpeg("NoJPEG",
 IntParameter qualityLevel("QualityLevel",
                           "JPEG quality level. 0 = Low, 9 = High",
                           8);
-#ifdef HAVE_H264
-BoolParameter useH264Encoding("UseH264",
-                              "Allow and prefer H.264 encoding", false);
-#endif
 
 BoolParameter maximize("Maximize", "Maximize viewer window", false);
 BoolParameter fullScreen("FullScreen", "Full screen mode", false);
@@ -178,9 +174,6 @@ static VoidParameter* parameterArray[] = {
   &compressLevel,
   &noJpeg,
   &qualityLevel,
-#ifdef HAVE_H264
-  &useH264Encoding,
-#endif
   &fullScreen,
   &fullScreenAllMonitors,
   &desktopSize,
